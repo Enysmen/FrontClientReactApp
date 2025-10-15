@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="FrontClientReactApp/frontclientreactapp.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+</Solution>
