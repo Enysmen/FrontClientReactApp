@@ -18,7 +18,7 @@ function App() {
   const handleSubmit = async (event) => {
     event.preventDefault()
 
-    setStatus({ state: 'loading', message: 'Отправляем данные на сервер…' })
+      setStatus({ state: 'loading', message: 'Sending data to the server…' })
 
     try {
       const response = await fetch(API_ENDPOINT, {
@@ -35,17 +35,17 @@ function App() {
 
       if (!response.ok) {
         const errorMessage = await response.text()
-        throw new Error(errorMessage || 'Не удалось выполнить вход')
+          throw new Error(errorMessage || 'Failed to log in')
       }
 
       const data = await response.json().catch(() => null)
-      const successMessage = data?.message || 'Вход выполнен успешно. Токен получен.'
+        const successMessage = data?.message || 'Login successful. Token received.'
 
       setStatus({ state: 'success', message: successMessage })
     } catch (error) {
       setStatus({
         state: 'error',
-        message: error instanceof Error ? error.message : 'Произошла неизвестная ошибка',
+          message: error instanceof Error ? error.message : 'An unknown error occurred',
       })
     }
   }
@@ -60,9 +60,9 @@ function App() {
             <div className="brand-circle">
               <span className="brand-initials">WS</span>
             </div>
-            <h1 className="login-card__title">Добро пожаловать!</h1>
+            <h1 className="login-card__title">Welcome!</h1>
             <p className="login-card__subtitle">
-              Введите логин и пароль, чтобы войти в панель управления.
+             Enter your login and password to log in to the control panel.
             </p>
           </div>
 
@@ -94,10 +94,10 @@ function App() {
             <div className="login-form__group">
               <div className="login-form__label-row">
                 <label htmlFor="loginPassword" className="login-form__label">
-                  Пароль
+                 Password
                 </label>
                 <a className="login-form__link" href="/account/recover">
-                  Забыли пароль?
+                 Forgot your password?
                 </a>
               </div>
               <input
@@ -109,7 +109,7 @@ function App() {
                 onChange={handleChange}
                 required
                 autoComplete="current-password"
-                placeholder="Введите пароль"
+                placeholder="Enter your password"
                 disabled={isLoading}
               />
             </div>
@@ -123,18 +123,18 @@ function App() {
                   onChange={(event) => setRememberMe(event.target.checked)}
                   disabled={isLoading}
                 />
-                <span className="remember-me__label">Запомнить меня</span>
+              <span className="remember-me__label">Remember me</span>
               </label>
-              <span className="login-form__secure">Защищённое соединение</span>
+             <span className="login-form__secure">Secure connection</span>
             </div>
 
             <button type="submit" className="login-form__submit" disabled={isLoading}>
-              {isLoading ? 'Входим…' : 'Войти'}
+                          {isLoading ? 'Where entering' : 'Login'}
             </button>
           </form>
 
           <p className="integration-hint">
-            Запрос отправляется на ASP.NET Web API по адресу:
+            The request is sent to ASP.NET Web API at:
             <br />
             <span className="integration-hint__endpoint">{API_ENDPOINT}</span>
           </p>
