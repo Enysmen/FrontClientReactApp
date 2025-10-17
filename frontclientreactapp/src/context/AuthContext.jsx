@@ -19,11 +19,11 @@ export function AuthProvider({ children }) {
     return unsubscribe
   }, [])
 
-  const login = useCallback(async (credentials) => {
+  const login = useCallback(async (credentials, options) => {
     setStatus('pending')
     setError(null)
     try {
-      const snapshot = await authClient.login(credentials)
+      const snapshot = await authClient.login(credentials, options)
       setTokens(snapshot)
       setStatus('authenticated')
       return snapshot
@@ -38,7 +38,14 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     authClient.logout()
     setStatus('idle')
-    setTokens(authClient.getSnapshot())
+    setTokens({
+      accessToken: null,
+      refreshToken: null,
+      accessTokenExpiresAt: null,
+      refreshTokenExpiresAt: null,
+      persistence: 'local',
+      claims: null,
+    })
     setError(null)
   }, [])
 

@@ -52,7 +52,9 @@ function resolveExpiry({ accessToken, accessTokenExpiresIn, accessTokenExpiresAt
 
 class AuthClient {
   constructor() {
-    this.tokens = loadTokens()
+    const persisted = loadTokens()
+    this.tokens = persisted?.tokens ?? null
+    this.persistence = persisted?.persistence ?? 'local'
     this.refreshTimeout = null
     this.refreshPromise = null
 
@@ -79,6 +81,8 @@ class AuthClient {
       refreshToken: this.tokens?.refreshToken ?? null,
       accessTokenExpiresAt: this.tokens?.accessTokenExpiresAt ?? null,
       refreshTokenExpiresAt: this.tokens?.refreshTokenExpiresAt ?? null,
+      persistence: this.persistence,
+      claims: this.tokens?.accessToken ? decodeJwt(this.tokens.accessToken) : null,
     }
   }
 
@@ -91,6 +95,31 @@ class AuthClient {
       return false
     }
     return Date.now() >= this.tokens.accessTokenExpiresAt - TOKEN_REFRESH_SKEW_MS
+  }
+
+  isRefreshTokenExpired() {
+    if (!this.tokens?.refreshToken || !this.tokens.refreshTokenExpiresAt) {
+      return false
+    }
+    return Date.now() >= this.tokens.refreshTokenExpiresAt
+  }
+
+  async ensureValidAccessToken() {
+    if (!this.tokens?.accessToken) {
+      return null
+    }
+
+    if (!this.isAccessTokenExpired()) {
+      return this.tokens.accessToken
+    }
+
+    try {
+      const snapshot = await this.refreshToken()
+      return snapshot.accessToken ?? null
+    } catch (error) {
+      this.logout()
+      throw error
+    }
   }
 
   setTokens(rawTokens) {
@@ -119,7 +148,7 @@ class AuthClient {
     }
 
     this.tokens = normalized
-    persistTokens(normalized)
+    persistTokens(normalized, { persistence: this.persistence })
     this.scheduleRefresh()
     this.notify()
   }
@@ -138,6 +167,11 @@ class AuthClient {
       return
     }
 
+    if (this.isRefreshTokenExpired()) {
+      this.logout()
+      return
+    }
+
     const delay = Math.max(
       500,
       this.tokens.accessTokenExpiresAt - Date.now() - TOKEN_REFRESH_SKEW_MS,
@@ -151,7 +185,10 @@ class AuthClient {
     }, delay)
   }
 
-  async login(credentials) {
+  async login(credentials, options = {}) {
+    const { remember = true, signal } = options
+    this.persistence = remember ? 'local' : 'session'
+
     const response = await fetch(`${API_BASE_URL}${AUTH_ENDPOINTS.login}`, {
       method: 'POST',
       headers: {
@@ -159,6 +196,7 @@ class AuthClient {
       },
       credentials: 'include',
       body: JSON.stringify(credentials),
+      signal,
     })
 
     if (!response.ok) {
@@ -178,6 +216,10 @@ class AuthClient {
 
     if (!this.tokens?.refreshToken) {
       throw new Error('Отсутствует refresh token')
+    }
+
+    if (this.isRefreshTokenExpired()) {
+      throw new Error('Refresh token истёк, требуется повторный вход')
     }
 
     this.refreshPromise = (async () => {
@@ -230,6 +272,7 @@ class AuthClient {
   logout() {
     this.revokeSession().finally(() => {
       this.setTokens(null)
+      this.persistence = 'local'
     })
   }
 }

@@ -11,20 +11,24 @@ function buildUrl(path) {
 }
 
 export async function apiFetch(path, options = {}) {
-  const headers = new Headers(options.headers || {})
-  const accessToken = authClient.getAccessToken()
+  const { skipAuth = false, ...requestInit } = options
+  const headers = new Headers(requestInit.headers || {})
 
-  if (accessToken) {
-    headers.set('Authorization', `Bearer ${accessToken}`)
+  if (!skipAuth) {
+    const validToken = await authClient.ensureValidAccessToken()
+    const token = validToken ?? authClient.getAccessToken()
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`)
+    }
   }
 
   const response = await fetch(buildUrl(path), {
-    ...options,
+    ...requestInit,
     headers,
-    credentials: options.credentials ?? 'include',
+    credentials: requestInit.credentials ?? 'include',
   })
 
-  if (response.status !== 401 || !authClient.getAccessToken()) {
+  if (skipAuth || response.status !== 401 || !authClient.getAccessToken()) {
     return response
   }
 
@@ -35,15 +39,15 @@ export async function apiFetch(path, options = {}) {
     throw error
   }
 
-  const retryHeaders = new Headers(options.headers || {})
+  const retryHeaders = new Headers(requestInit.headers || {})
   const newToken = authClient.getAccessToken()
   if (newToken) {
     retryHeaders.set('Authorization', `Bearer ${newToken}`)
   }
 
   return fetch(buildUrl(path), {
-    ...options,
+    ...requestInit,
     headers: retryHeaders,
-    credentials: options.credentials ?? 'include',
+    credentials: requestInit.credentials ?? 'include',
   })
 }

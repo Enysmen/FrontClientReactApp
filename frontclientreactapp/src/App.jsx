@@ -34,7 +34,7 @@ function formatDate(value) {
 function LoginExperience() {
   const { status: authStatus, tokens, error: authError, login, logout } = useAuth()
   const [formData, setFormData] = useState({ email: '', password: '' })
-  const [rememberMe, setRememberMe] = useState(false)
+  const [rememberMe, setRememberMe] = useState(() => tokens?.persistence !== 'session')
   const [feedback, setFeedback] = useState({ variant: 'idle', text: '' })
   const [probePath, setProbePath] = useState(PROTECTED_PROBE_DEFAULT)
   const [probeState, setProbeState] = useState({ state: 'idle', message: '' })
@@ -62,7 +62,14 @@ function LoginExperience() {
         }
       })
     }
-  }, [authStatus, tokens?.accessToken, tokens?.accessTokenExpiresAt])
+  }, [authStatus, tokens?.accessToken, tokens?.accessTokenExpiresAt, tokens?.persistence])
+
+  useEffect(() => {
+    if (!tokens) {
+      return
+    }
+    setRememberMe(tokens.persistence !== 'session')
+  }, [tokens])
 
   useEffect(() => {
     if (authStatus === 'error' && authError) {
@@ -82,10 +89,12 @@ function LoginExperience() {
     setFeedback({ variant: 'loading', text: 'Отправляем данные на сервер…' })
     setProbeState({ state: 'idle', message: '' })
     try {
-      await login({ ...formData, rememberMe })
+      await login(formData, { remember: rememberMe })
       setFeedback({
         variant: 'success',
-        text: 'Вход выполнен. Можно вызывать защищённые методы API.',
+        text: rememberMe
+          ? 'Вход выполнен. Сессия будет восстановлена между перезапусками браузера.'
+          : 'Вход выполнен. Сессия активна до закрытия вкладки или окна браузера.',
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Не удалось выполнить вход'
@@ -126,6 +135,29 @@ function LoginExperience() {
     }
     return Math.max(0, tokens.refreshTokenExpiresAt - now)
   }, [now, tokens?.refreshTokenExpiresAt])
+
+  const claims = tokens?.claims ?? null
+
+  const roles = useMemo(() => {
+    if (!claims) {
+      return []
+    }
+    const raw = claims.role ?? claims.roles ?? []
+    if (Array.isArray(raw)) {
+      return raw
+    }
+    if (typeof raw === 'string') {
+      return raw
+        .split(/[,;]/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+    }
+    return []
+  }, [claims])
+
+  const persistenceLabel = tokens?.persistence === 'session'
+    ? 'sessionStorage (до закрытия вкладки)'
+    : 'localStorage (сохраняется между сеансами)'
 
   return (
     <div className="login-wrapper">
@@ -268,11 +300,37 @@ function LoginExperience() {
                   </div>
                 </dl>
               </article>
+              <article className="token-card token-card--claims">
+                <h3 className="token-card__title">JWT payload</h3>
+                <dl className="token-claims">
+                  <div>
+                    <dt>Subject (sub)</dt>
+                    <dd>{claims?.sub ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>Имя (name)</dt>
+                    <dd>{claims?.name ?? claims?.given_name ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>Roles</dt>
+                    <dd>{roles.length ? roles.join(', ') : '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>Выдан</dt>
+                    <dd>{claims?.iat ? formatDate(claims.iat * 1000) : '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>Идентификатор (jti)</dt>
+                    <dd>{claims?.jti ?? '—'}</dd>
+                  </div>
+                </dl>
+              </article>
             </div>
             <p className="token-panel__hint">
-              Автообновление запускается за 30 секунд до окончания срока действия access token.
-              Refresh токен хранится в localStorage и передаётся в ASP.NET Web API в теле запроса.
+              Автообновление запускается за 30 секунд до окончания срока действия access token. Refresh
+              токен передаётся в ASP.NET Web API в теле запроса при обновлении сессии.
             </p>
+            <p className="token-panel__storage">Хранение токенов: {persistenceLabel}</p>
           </section>
 
           <section className="probe-panel">
