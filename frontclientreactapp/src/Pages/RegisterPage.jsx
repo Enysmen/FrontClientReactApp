@@ -1,8 +1,14 @@
-import React, { useState } from 'react'
+ï»¿import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import '../CSS/RegisterPage.css'
+import { getExp, secondsLeft } from '../utils/jwt'
 
 const API_ENDPOINT = 'https://localhost:5001/api/auth/register' 
+
+
+const mock = 'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJleHAiOjE3NjA3MjE4NjB9.x'
+const exp = getExp(mock)
+console.log('exp =', exp, 'left =', secondsLeft(exp))
 
 export default function RegisterPage() {
     const [form, setForm] = useState({name: '',email: '',password: '',confirmPassword: '',})
@@ -32,7 +38,7 @@ export default function RegisterPage() {
         e.preventDefault()
         if (!validate()) return
 
-        setStatus({ state: 'loading', message: 'Creating your account…' })
+        setStatus({ state: 'loading', message: 'Creating your accountâ€¦' })
         try {
             const resp = await fetch(API_ENDPOINT, {
                 method: 'POST',
@@ -101,7 +107,7 @@ export default function RegisterPage() {
                     )}
                 </label>
 
-                <button type="submit" className="register_form_submint" disabled={isLoading}> {isLoading ? 'Signing up…' : 'Sign up'} </button>
+                <button type="submit" className="register_form_submint" disabled={isLoading}> {isLoading ? 'Signing upâ€¦' : 'Sign up'} </button>
 
                 <button type="button" className="link-button" onClick={() => navigate('/login')} disabled={isLoading}> Back to login </button>
             </form>

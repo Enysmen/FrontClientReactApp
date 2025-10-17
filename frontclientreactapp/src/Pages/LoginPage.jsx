@@ -1,8 +1,9 @@
-import { useState } from 'react'
+п»їimport { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import '../CSS/LoginPage.css' // глобальный CSS для этой страницы
+import '../CSS/LoginPage.css' 
 
 const API_ENDPOINT = 'https://localhost:5001/api/auth/login'
+
 
 export default function LoginPage() {
     const [formData, setFormData] = useState({ email: '', password: '' })
@@ -17,7 +18,7 @@ export default function LoginPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        setStatus({ state: 'loading', message: 'Sending data to the server…' })
+        setStatus({ state: 'loading', message: 'Sending data to the serverвЂ¦' })
         try {
             const response = await fetch(API_ENDPOINT, {
                 method: 'POST',
@@ -34,7 +35,7 @@ export default function LoginPage() {
             const data = await response.json().catch(() => null)
             const successMessage = data?.message || 'Login successful. Token received.'
             setStatus({ state: 'success', message: successMessage })
-            // пример дальнейшего действия:
+            // РїСЂРёРјРµСЂ РґР°Р»СЊРЅРµР№С€РµРіРѕ РґРµР№СЃС‚РІРёСЏ:
             // navigate('/dashboard')
         } catch (error) {
             setStatus({
@@ -115,7 +116,7 @@ export default function LoginPage() {
                         </div>
 
                         <button type="submit" className="login-form__submit" disabled={isLoading}>
-                            {isLoading ? 'We’re entering' : 'Login'}
+                            {isLoading ? 'WeвЂ™re entering' : 'Login'}
                         </button>
 
                         <button
